@@ -13,7 +13,8 @@ export interface PlayableInstrument {
     notes: string | string[],
     duration: number | string,
     time?: number,
-    velocity?: number
+    /** Single scalar applied to all notes, or a per-note array (same length as notes). */
+    velocity?: number | number[]
   ): void;
   volume: { value: number };
   dispose(): void;

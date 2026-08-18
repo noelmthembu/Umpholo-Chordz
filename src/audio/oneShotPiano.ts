@@ -68,9 +68,14 @@ export class OneShotPianoInstrument {
     notes: string | string[],
     duration: number | string,
     time?: number,
-    velocity = 0.8
+    velocity: number | number[] = 0.8
   ): void {
-    this.layerFor(velocity).triggerAttackRelease(notes, duration, time, velocity);
+    const list = Array.isArray(notes) ? notes : [notes];
+    const velocities = Array.isArray(velocity) ? velocity : list.map(() => velocity as number);
+    list.forEach((note, i) => {
+      const v = velocities[i] ?? velocities[velocities.length - 1] ?? 0.8;
+      this.layerFor(v).triggerAttackRelease(note, duration, time, v);
+    });
   }
 
   dispose(): void {

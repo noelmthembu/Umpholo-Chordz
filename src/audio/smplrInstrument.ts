@@ -49,13 +49,15 @@ export class SmplrInstrument implements PlayableInstrument {
     notes: string | string[],
     duration: number | string,
     time?: number,
-    velocity = 0.8
+    velocity: number | number[] = 0.8
   ): void {
     const list = Array.isArray(notes) ? notes : [notes];
     const durSec = typeof duration === 'number' ? duration : Tone.Time(duration).toSeconds();
     const startTime = time ?? Tone.now();
-    const gmVelocity = Math.max(1, Math.min(127, Math.round(velocity * 127)));
-    list.forEach((note) => {
+    const velocities = Array.isArray(velocity) ? velocity : list.map(() => velocity as number);
+    list.forEach((note, i) => {
+      const v = velocities[i] ?? velocities[velocities.length - 1] ?? 0.8;
+      const gmVelocity = Math.max(1, Math.min(127, Math.round(v * 127)));
       this.inst.start({ note, velocity: gmVelocity, time: startTime, duration: durSec });
     });
   }

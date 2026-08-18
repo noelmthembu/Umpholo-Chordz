@@ -1,65 +1,31 @@
-import type { Chord, GenerationParams, QualityKey, StyleKey, StyleProfile } from '../types';
+import type { Chord, GenerationParams, StyleKey, StyleProfile } from '../types';
 import { pcToMidi, scalePitchClasses } from './scales';
-import { buildQualityChordTones, chordSymbolForQuality, qualityFamily } from './chords';
-import { closestMidiForPc, voiceLeadUpperStructure } from './voicing';
+import { buildQualityChordTones, chordSymbolForQuality } from './chords';
+import { closestMidiForPc, jazzVoicing } from './voicing';
 import { FEEL_PROFILES, feelRootPc, type FeelStep } from './feels';
 
-/**
- * Amapholas / Private-School-piano artist-influence dials. These no longer
- * decide *which* chords play (the Feel's genre-authentic templates do that)
- * — instead they shape the extra color tension layered on top and the
- * register/spacing, i.e. how a given progression is *voiced*, the way a
- * real player's touch differs from the notes on the page.
- */
 export const STYLE_PROFILES: Record<StyleKey, StyleProfile> = {
-  kabza: {
-    label: 'Kabza De Small — spacious, soulful, foundational Amapiano piano',
-    altProb: 0.30, register: 0,
-  },
-  melmusiq: {
-    label: 'MelMusiq — melodic, soulful piano runs',
-    altProb: 0.25, register: 1,
-  },
-  kelvinmomo: {
-    label: 'Kelvin Momo — Private School pioneer, moody minimalist jazz',
-    altProb: 0.38, register: 0,
-  },
-  djstoks: {
-    label: 'DJ Stokie — soulful, warm chord pads',
-    altProb: 0.22, register: 0,
-  },
-  soulfuldesciple: {
-    label: 'Soulful Deciple — gospel-tinged, lush 9ths',
-    altProb: 0.28, register: 1,
-  },
-  melomusiq: {
-    label: 'Melo Musiq — flowing, jazzy piano phrasing',
-    altProb: 0.26, register: 1,
-  },
-  stixx: {
-    label: 'Stixx — bright, bouncy jazzy stabs',
-    altProb: 0.18, register: 1,
-  },
-  bandros: {
-    label: 'Bandros — deep, meditative extended voicings',
-    altProb: 0.34, register: 0,
-  },
-  masmusiq: {
-    label: 'Mas Musiq — catchy, melodic piano hooks',
-    altProb: 0.22, register: 1,
-  },
-  deepphil: {
-    label: 'Deep Phil — deep-house-tinged smooth chords',
-    altProb: 0.26, register: 0,
-  },
-  djyvino: {
-    label: 'Djy Vino — soulful Private School warmth',
-    altProb: 0.27, register: 0,
-  },
-  jappino: {
-    label: 'Jappino — rich, jazz-forward chord work',
-    altProb: 0.32, register: 1,
-  },
+  // Amapiano & Private School Legends
+  kabza:          { label: 'Kabza De Small — spacious, soulful, foundational Amapiano piano', artist: 'Kabza De Small', altProb: 0.30, register: 0, densityBias: 0.5 },
+  kelvinmomo:     { label: 'Kelvin Momo — Private School pioneer, moody minimalist jazz', artist: 'Kelvin Momo', altProb: 0.38, register: 0, densityBias: 0.6 },
+  melmusiq:       { label: 'MelMusiq — melodic, flowing soulful piano runs', artist: 'MelMusiq', altProb: 0.25, register: 1, densityBias: 0.4 },
+  djstoks:        { label: 'DJ Stokie — soulful, warm chord pads', artist: 'DJ Stokie', altProb: 0.22, register: 0, densityBias: 0.4 },
+  soulfuldesciple:{ label: 'Soulful Deciple — gospel-tinged, lush 9ths', artist: 'Soulful Deciple', altProb: 0.28, register: 1, densityBias: 0.6 },
+  melomusiq:      { label: 'Melo Musiq — flowing, jazzy piano phrasing', artist: 'Melo Musiq', altProb: 0.26, register: 1, densityBias: 0.5 },
+  stixx:          { label: 'Stixx — bright, bouncy jazzy stabs', artist: 'Stixx', altProb: 0.18, register: 1, densityBias: 0.3 },
+  bandros:        { label: 'Bandros — deep, meditative extended voicings', artist: 'Bandros', altProb: 0.34, register: 0, densityBias: 0.7 },
+  masmusiq:       { label: 'Mas Musiq — catchy, melodic piano hooks', artist: 'Mas Musiq', altProb: 0.22, register: 1, densityBias: 0.4 },
+  deepphil:       { label: 'Deep Phil — deep-house-tinged smooth chords', artist: 'Deep Phil', altProb: 0.26, register: 0, densityBias: 0.5 },
+  djyvino:        { label: 'Djy Vino — soulful Private School warmth', artist: 'Djy Vino', altProb: 0.27, register: 0, densityBias: 0.5 },
+  jappino:        { label: 'Jappino — rich, jazz-forward chord work', artist: 'Jappino', altProb: 0.32, register: 1, densityBias: 0.6 },
+
+  // Master Jazz Pianists
+  billevans:      { label: 'Bill Evans — rootless A/B, delicate guide-tone voice leading', artist: 'Bill Evans', altProb: 0.45, register: 0, densityBias: 0.6 },
+  herbie:         { label: 'Herbie Hancock — quartal sus4s, open fifths, rich modal color', artist: 'Herbie Hancock', altProb: 0.42, register: 0, densityBias: 0.7 },
+  glasper:        { label: 'Robert Glasper — neo-soul clusters, dragging pocket, tight 2nds', artist: 'Robert Glasper', altProb: 0.50, register: 0, densityBias: 0.8 },
+  barryharris:    { label: 'Barry Harris — 6th-diminished scale, locked-hands drop-2', artist: 'Barry Harris', altProb: 0.35, register: 0, densityBias: 0.6 },
+  mccoytyner:     { label: 'McCoy Tyner — powerful stacked 4ths, pentatonic stabs', artist: 'McCoy Tyner', altProb: 0.40, register: 1, densityBias: 0.8 },
+  kennybarron:    { label: 'Kenny Barron — 5-voice concert spreads, open 4ths/5ths', artist: 'Kenny Barron', altProb: 0.44, register: 0, densityBias: 0.7 },
 };
 
 export function pick<T>(arr: T[]): T {
@@ -77,50 +43,16 @@ export function weightedPick<K extends string>(weights: Record<K, number>): K {
   return entries[0][0];
 }
 
-/** Extra color tone(s) appropriate to a chord's harmonic family — so any
- * added tension enriches the genre-authentic chord instead of clashing
- * with it. Each option is a semitone offset from the chord root (can
- * exceed 12 to land an octave up, matching the rest of the tone list). */
-function tensionOptionsFor(quality: QualityKey): { semi: number; label: string }[] {
-  switch (qualityFamily(quality)) {
-    case 'major':
-      return [
-        { semi: 21, label: ' add13' },
-        { semi: 18, label: ' \u266f11' },
-      ];
-    case 'minor':
-      return [
-        { semi: 17, label: ' 11' },
-        { semi: 21, label: ' add13' },
-      ];
-    case 'dominant':
-      return [
-        { semi: 13, label: ' \u266d9' },
-        { semi: 15, label: ' \u266f9' },
-        { semi: 18, label: ' \u266f11' },
-      ];
-    case 'halfdim':
-      return [{ semi: 17, label: ' 11' }];
-    case 'dim':
-    default:
-      return [];
-  }
-}
-
-/**
- * Generate a chord progression for the chosen genre Feel. `usedProgressions`
- * is a caller-owned Set (persisted for the session) used to avoid repeating
- * the same template until the whole pool for that feel has been exhausted.
- */
 export function generateProgression(
   params: GenerationParams,
   usedProgressions: Set<string>
 ): Chord[] {
   const { rootPc, mode: feelKey, style: styleKey, bars } = params;
-  const feel = FEEL_PROFILES[feelKey];
-  const style = STYLE_PROFILES[styleKey];
+  const feel = FEEL_PROFILES[feelKey] || FEEL_PROFILES.soulful;
+  const style = STYLE_PROFILES[styleKey] || STYLE_PROFILES.kelvinmomo;
   const scale = scalePitchClasses(rootPc, feel.baseScaleMode);
 
+  // Template selection (non-repeating within session)
   let candidates = feel.templates.filter((t) => {
     const sig = `${feelKey}|${t.label}|${rootPc}`;
     return !usedProgressions.has(sig);
@@ -132,69 +64,59 @@ export function generateProgression(
   const template = pick(candidates);
   usedProgressions.add(`${feelKey}|${template.label}|${rootPc}`);
 
+  // Assemble steps
   const steps: FeelStep[] = [];
-  for (let i = 0; i < bars; i++) steps.push(template.steps[i % template.steps.length]);
+  for (let i = 0; i < bars; i++) {
+    steps.push(template.steps[i % template.steps.length]);
+  }
 
   const bassOctave = 2 + style.register;
-  const upperCenter = pcToMidi(0, 4 + style.register); // mid-register anchor for the first chord's upper structure
+  const upperAnchor = pcToMidi(2, 4 + style.register); // D4
 
   const chords: Chord[] = [];
   let prevRootMidi: number | null = null;
   let prevUpperMidis: number[] = [];
 
-  steps.forEach((step, i) => {
+  let currentBeat = 0;
+
+  steps.forEach((step) => {
     const cRootPc = feelRootPc(rootPc, scale, step.root);
-    let { tones } = buildQualityChordTones(cRootPc, step.quality);
-    let tensionLabel = '';
+    const lengthBeats = step.lengthBeats ?? 4;
 
-    // Layer a style-driven color tone on top of the genre-authentic chord —
-    // only from the options that fit that chord's harmonic function, so it
-    // adds lushness (the layered tension-and-release soulful/jazzy voicings
-    // are known for) rather than a wrong note.
-    if (Math.random() < style.altProb) {
-      const options = tensionOptionsFor(step.quality);
-      if (options.length) {
-        const t = pick(options);
-        const already = tones.some((tn) => tn.semitoneFromRoot === t.semi);
-        if (!already) {
-          tones = tones.concat([{ pc: (cRootPc + t.semi) % 12, semitoneFromRoot: t.semi }]);
-          tensionLabel = t.label;
-        }
-      }
-    }
+    const rootMidi =
+      prevRootMidi === null
+        ? pcToMidi(cRootPc, bassOctave)
+        : closestMidiForPc(cRootPc, prevRootMidi);
 
-    // Root anchors the bass, voice-led to the nearest octave of the
-    // previous root so the bassline itself moves smoothly bar to bar.
-    const rootMidi = prevRootMidi === null ? pcToMidi(cRootPc, bassOctave) : closestMidiForPc(cRootPc, prevRootMidi);
-
-    // Everything above the root is a rootless upper-structure voicing,
-    // voice-led against the previous chord's upper structure so common
-    // tones are held and the rest move by the smallest possible step —
-    // this is what makes the progression feel like it's breathing instead
-    // of jumping around the keyboard.
-    const upperPcs = tones.slice(1).map((t) => t.pc);
-    const upperMidis = voiceLeadUpperStructure(
-      upperPcs,
-      prevUpperMidis.length ? prevUpperMidis : [upperCenter],
-      upperCenter
+    const voicingResult = jazzVoicing(
+      cRootPc,
+      step.quality,
+      upperAnchor,
+      prevUpperMidis
     );
 
-    const midiNotes = [rootMidi, ...upperMidis];
-    const symbol = chordSymbolForQuality(cRootPc, step.quality) + tensionLabel;
+    const { tones } = buildQualityChordTones(cRootPc, step.quality);
+    const symbol = chordSymbolForQuality(cRootPc, step.quality);
     const degree = 'deg' in step.root ? step.root.deg : -1;
+
+    const midiNotes = [...new Set([rootMidi, ...voicingResult.midiNotes])].sort((a, b) => a - b);
 
     chords.push({
       degree,
       rootPc: cRootPc,
+      quality: step.quality,
       tones,
       symbol,
-      midiNotes: [...new Set(midiNotes)].sort((a, b) => a - b),
-      startBeat: i * 4,
-      lengthBeats: 4,
+      midiNotes,
+      startBeat: currentBeat,
+      lengthBeats,
+      voicingLabel: voicingResult.shapeLabel,
+      voicingCategory: voicingResult.category,
     });
 
+    currentBeat += lengthBeats;
     prevRootMidi = rootMidi;
-    prevUpperMidis = upperMidis;
+    prevUpperMidis = voicingResult.midiNotes;
   });
 
   return chords;
