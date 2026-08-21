@@ -220,6 +220,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controls.chordInstrument, controls.swing, controls.cascadeMs, controls.cascadeDirection, controls.handBalance]);
 
+  // Keep a live arrangement edit in sync with the current transport.
+  useEffect(() => {
+    if (isPlaying) reschedule();
+  }, [session.chords, isPlaying, reschedule]);
+
   // Active notes to display on the KeyboardVisualizer
   const activeChord =
     activeChordIndex !== null && session.chords[activeChordIndex]
@@ -268,6 +273,9 @@ export default function App() {
               chords={session.chords}
               activeChordIndex={activeChordIndex}
               onAuditionChord={handleAuditionSingleChord}
+              onMoveChord={session.moveChord}
+              onRemoveChord={session.removeChord}
+              onRevoiceChord={session.revoiceChord}
             />
 
             {/* Live Keyboard Visualizer */}

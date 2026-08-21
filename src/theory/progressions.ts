@@ -1,7 +1,7 @@
 import type { Chord, GenerationParams, StyleKey, StyleProfile } from '../types';
 import { pcToMidi, scalePitchClasses } from './scales';
 import { buildQualityChordTones, chordSymbolForQuality } from './chords';
-import { closestMidiForPc, jazzVoicing } from './voicing';
+import { buildPianoVoicing } from './pianoVoicing';
 import { FEEL_PROFILES, feelRootPc, type FeelStep } from './feels';
 
 export const STYLE_PROFILES: Record<StyleKey, StyleProfile> = {
@@ -70,7 +70,6 @@ export function generateProgression(
     steps.push(template.steps[i % template.steps.length]);
   }
 
-  const bassOctave = 2 + style.register;
   const upperAnchor = pcToMidi(2, 4 + style.register); // D4
 
   const chords: Chord[] = [];
@@ -83,23 +82,21 @@ export function generateProgression(
     const cRootPc = feelRootPc(rootPc, scale, step.root);
     const lengthBeats = step.lengthBeats ?? 4;
 
-    const rootMidi =
-      prevRootMidi === null
-        ? pcToMidi(cRootPc, bassOctave)
-        : closestMidiForPc(cRootPc, prevRootMidi);
-
-    const voicingResult = jazzVoicing(
-      cRootPc,
-      step.quality,
-      upperAnchor,
-      prevUpperMidis
-    );
+    const voicingResult = buildPianoVoicing({
+      rootPc: cRootPc,
+      quality: step.quality,
+      anchor: upperAnchor,
+      previousUpperMidis: prevUpperMidis,
+      previousBassMidi: prevRootMidi,
+      densityBias: style.densityBias,
+      register: style.register,
+    });
 
     const { tones } = buildQualityChordTones(cRootPc, step.quality);
     const symbol = chordSymbolForQuality(cRootPc, step.quality);
     const degree = 'deg' in step.root ? step.root.deg : -1;
 
-    const midiNotes = [...new Set([rootMidi, ...voicingResult.midiNotes])].sort((a, b) => a - b);
+    const midiNotes = voicingResult.midiNotes;
 
     chords.push({
       degree,
@@ -108,6 +105,9 @@ export function generateProgression(
       tones,
       symbol,
       midiNotes,
+      bassMidiNotes: voicingResult.bassMidiNotes,
+      upperMidiNotes: voicingResult.upperMidiNotes,
+      voicingVariant: 0,
       startBeat: currentBeat,
       lengthBeats,
       voicingLabel: voicingResult.shapeLabel,
@@ -115,8 +115,8 @@ export function generateProgression(
     });
 
     currentBeat += lengthBeats;
-    prevRootMidi = rootMidi;
-    prevUpperMidis = voicingResult.midiNotes;
+    prevRootMidi = voicingResult.bassMidiNotes[0];
+    prevUpperMidis = voicingResult.upperMidiNotes;
   });
 
   return chords;

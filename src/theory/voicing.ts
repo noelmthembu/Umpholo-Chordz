@@ -322,7 +322,8 @@ export function jazzVoicing(
   quality: QualityKey,
   anchor: number,
   prevUpperMidis: number[] = [],
-  preferredCategory?: VoicingCategory
+  preferredCategory?: VoicingCategory,
+  variation = 0
 ): JazzVoicingResult {
   const shapes = JAZZ_VOICING_SHAPES[quality] || JAZZ_VOICING_SHAPES.maj7;
 
@@ -362,19 +363,22 @@ export function jazzVoicing(
     };
   }
 
+  const med = (v: number[]) => v[Math.floor(v.length / 2)];
+  const candidateRank = Math.abs(variation) % Math.min(candidates.length, 4);
+
   if (prevUpperMidis.length === 0) {
-    const med = (v: number[]) => v[Math.floor(v.length / 2)];
-    const best = candidates.reduce((b, cand) =>
-      Math.abs(med(cand.notes) - anchor) < Math.abs(med(b.notes) - anchor) ? cand : b
+    const ranked = [...candidates].sort(
+      (a, b) => Math.abs(med(a.notes) - anchor) - Math.abs(med(b.notes) - anchor)
     );
+    const selected = ranked[candidateRank];
     return {
-      midiNotes: best.notes,
-      shapeLabel: best.shape.label,
-      category: best.shape.category,
+      midiNotes: selected.notes,
+      shapeLabel: selected.shape.label,
+      category: selected.shape.category,
     };
   }
 
-  // Voice leading cost
+  // Voice-leading cost, with alternate rankings available for deliberate panel re-voicing.
   const vlCost = (notes: number[]): number =>
     notes.reduce((sum, note) => {
       const nearest = prevUpperMidis.reduce((b, p) =>
@@ -384,14 +388,13 @@ export function jazzVoicing(
       return sum + Math.abs(nearest - note);
     }, 0);
 
-  const best = candidates.reduce((b, cand) =>
-    vlCost(cand.notes) < vlCost(b.notes) ? cand : b
-  );
+  const ranked = [...candidates].sort((a, b) => vlCost(a.notes) - vlCost(b.notes));
+  const selected = ranked[candidateRank];
 
   return {
-    midiNotes: best.notes,
-    shapeLabel: best.shape.label,
-    category: best.shape.category,
+    midiNotes: selected.notes,
+    shapeLabel: selected.shape.label,
+    category: selected.shape.category,
   };
 }
 

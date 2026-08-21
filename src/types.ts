@@ -71,6 +71,12 @@ export interface Chord {
   tones: ChordTone[];
   symbol: string;
   midiNotes: number[];
+  /** Low-hand foundation, typically root plus octave when space allows. */
+  bassMidiNotes?: number[];
+  /** Right-hand guide tones, extensions, and melodic color. */
+  upperMidiNotes?: number[];
+  /** Cycles among nearby voice-led shapes when the arranger requests a revoice. */
+  voicingVariant?: number;
   startBeat: number;
   lengthBeats: number;
   voicingLabel?: string;

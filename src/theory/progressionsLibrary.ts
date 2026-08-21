@@ -19,7 +19,7 @@
 import type { Chord, PerformedProgression, ProgressionGenre } from '../types';
 import { pcToMidi } from './scales';
 import { buildQualityChordTones, chordSymbolForQuality } from './chords';
-import { closestMidiForPc, jazzVoicing } from './voicing';
+import { buildPianoVoicing } from './pianoVoicing';
 
 export const PERFORMED_PROGRESSIONS_LIBRARY: PerformedProgression[] = [
   // ───────────────────────────────────────────────────────────────────────────
@@ -2605,22 +2605,19 @@ export function buildPerformedProgressionChords(
     const chordRootPc = (rootPc + step.rootOffset) % 12;
     const lengthBeats = step.lengthBeats ?? 4;
 
-    const rootMidi =
-      prevRootMidi === null
-        ? pcToMidi(chordRootPc, 3)
-        : closestMidiForPc(chordRootPc, prevRootMidi);
-
-    const voicingResult = jazzVoicing(
-      chordRootPc,
-      step.quality,
-      upperAnchor,
-      prevUpperMidis,
-      step.voicingCategory
-    );
+    const voicingResult = buildPianoVoicing({
+      rootPc: chordRootPc,
+      quality: step.quality,
+      anchor: upperAnchor,
+      previousUpperMidis: prevUpperMidis,
+      previousBassMidi: prevRootMidi,
+      preferredCategory: step.voicingCategory,
+      densityBias: 0.6,
+    });
 
     const { tones } = buildQualityChordTones(chordRootPc, step.quality);
     const symbol = chordSymbolForQuality(chordRootPc, step.quality);
-    const midiNotes = [...new Set([rootMidi, ...voicingResult.midiNotes])].sort((a, b) => a - b);
+    const midiNotes = voicingResult.midiNotes;
 
     chords.push({
       degree: step.degree,
@@ -2629,6 +2626,9 @@ export function buildPerformedProgressionChords(
       tones,
       symbol,
       midiNotes,
+      bassMidiNotes: voicingResult.bassMidiNotes,
+      upperMidiNotes: voicingResult.upperMidiNotes,
+      voicingVariant: 0,
       startBeat: currentBeat,
       lengthBeats,
       voicingLabel: voicingResult.shapeLabel,
@@ -2636,8 +2636,8 @@ export function buildPerformedProgressionChords(
     });
 
     currentBeat += lengthBeats;
-    prevRootMidi = rootMidi;
-    prevUpperMidis = voicingResult.midiNotes;
+    prevRootMidi = voicingResult.bassMidiNotes[0];
+    prevUpperMidis = voicingResult.upperMidiNotes;
   });
 
   return chords;
