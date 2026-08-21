@@ -82,7 +82,7 @@ export function CascadeKnob({
         <div
           className={`rotary-knob ${isDragging ? 'dragging' : ''}`}
           onMouseDown={handleMouseDown}
-          title="Drag up or down to adjust Cascade spread (0-80ms)"
+          aria-hidden="true"
         >
           <div className="knob-dial" style={{ transform: `rotate(${angle}deg)` }}>
             <div className="knob-indicator" />
@@ -113,11 +113,14 @@ export function CascadeKnob({
 
       {/* Range Slider for Accessible / Direct Touch */}
       <div className="cascade-slider-row">
+        <label className="sr-only" htmlFor="cascadeTiming">Cascade timing</label>
         <input
+          id="cascadeTiming"
           type="range"
           min={0}
           max={80}
           value={value}
+          aria-valuetext={`${value} milliseconds` }
           onChange={(e) => onChange(Number(e.target.value))}
           className="cascade-slider"
         />
@@ -133,7 +136,7 @@ export function CascadeKnob({
             onClick={() => onDirectionChange('ease')}
             title="Pianist Roll (Exponential ease-in: bass planted, treble ripples)"
           >
-            🌊 Pianist Roll
+            Pianist roll
           </button>
           <button
             type="button"
@@ -141,7 +144,7 @@ export function CascadeKnob({
             onClick={() => onDirectionChange('up')}
             title="Linear Upward Strum (Bottom to top)"
           >
-            ⬆ Upward
+            Upward
           </button>
           <button
             type="button"
@@ -149,7 +152,7 @@ export function CascadeKnob({
             onClick={() => onDirectionChange('down')}
             title="Reverse Roll (Treble melody first)"
           >
-            ⬇ Top-Down
+            Top-down
           </button>
           <button
             type="button"
@@ -157,7 +160,7 @@ export function CascadeKnob({
             onClick={() => onDirectionChange('flam')}
             title="Two-Handed Flam (LH bass note precedes RH chord)"
           >
-            ⚡ Flam
+            Flam
           </button>
         </div>
       </div>

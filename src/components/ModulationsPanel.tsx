@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import type { Chord, InstrumentKey, ModulationSuggestion } from '../types';
 import { NOTE_NAMES } from '../theory/scales';
 import { getSuggestedModulations } from '../theory/modulations';
 import { buildMidiFile, downloadMidi } from '../midi/midiWriter';
+import { Icon } from './Icon';
 
 interface ModulationsPanelProps {
   currentRootPc: number;
@@ -22,7 +22,6 @@ export function ModulationsPanel({
 }: ModulationsPanelProps) {
   const rootName = NOTE_NAMES[currentRootPc];
   const modulations = getSuggestedModulations(currentRootPc);
-  const [selectedModId, setSelectedModId] = useState<string | null>(null);
 
   const handleExportModulationMidi = (mod: ModulationSuggestion) => {
     const bytes = buildMidiFile(mod.transitionChords, {
@@ -52,14 +51,8 @@ export function ModulationsPanel({
 
       <div className="modulations-grid">
         {modulations.map((mod) => {
-          const isSelected = selectedModId === mod.id;
-
           return (
-            <div
-              key={mod.id}
-              className={`mod-card ${isSelected ? 'selected' : ''}`}
-              onClick={() => setSelectedModId(mod.id)}
-            >
+            <article key={mod.id} className="mod-card">
               <div className="mod-card-top">
                 <span className="mod-concept-tag">{mod.harmonicConcept}</span>
                 <span className="mod-target-key">Target: {mod.targetKeyName}</span>
@@ -88,7 +81,8 @@ export function ModulationsPanel({
                   }}
                   title="Preview audio of this modulation transition"
                 >
-                  ▶ Preview
+                  <Icon name="play" aria-hidden="true" />
+                  Preview
                 </button>
 
                 <button
@@ -101,7 +95,8 @@ export function ModulationsPanel({
                   }}
                   title="Append these transition chords to the active progression"
                 >
-                  ＋ Append to Track
+                  <Icon name="add" aria-hidden="true" />
+                  Add to progression
                 </button>
 
                 <button
@@ -113,10 +108,11 @@ export function ModulationsPanel({
                   }}
                   title="Export this modulation transition as a MIDI file"
                 >
-                  ⬇ MIDI
+                  <Icon name="download" aria-hidden="true" />
+                  Export MIDI
                 </button>
               </div>
-            </div>
+            </article>
           );
         })}
       </div>

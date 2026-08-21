@@ -1,3 +1,5 @@
+import { Icon } from './Icon';
+
 interface TransportBarProps {
   isPlaying: boolean;
   onPlay: () => void;
@@ -6,12 +8,17 @@ interface TransportBarProps {
 
 export function TransportBar({ isPlaying, onPlay, onStop }: TransportBarProps) {
   return (
-    <div className="transport">
-      <button className={isPlaying ? 'playing' : ''} onClick={onPlay} title="Play">
-        ▶
+    <div className="transport" role="group" aria-label="Progression playback">
+      <button
+        type="button"
+        className={`icon-button transport-button ${isPlaying ? 'playing' : ''}`}
+        onClick={onPlay}
+        aria-label={isPlaying ? 'Restart progression playback' : 'Play progression'}
+      >
+        <Icon name="play" aria-hidden="true" />
       </button>
-      <button onClick={onStop} title="Stop">
-        ■
+      <button type="button" className="icon-button transport-button" onClick={onStop} aria-label="Stop progression playback">
+        <Icon name="stop" aria-hidden="true" />
       </button>
     </div>
   );

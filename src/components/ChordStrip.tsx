@@ -23,11 +23,12 @@ export function ChordStrip({ chords, activeChordIndex, onAuditionChord }: ChordS
         const cat = c.voicingCategory ? c.voicingCategory.split(' ')[0] : 'Voicing';
 
         return (
-          <div
+          <button
+            type="button"
             className={`chord-card ${isActive ? 'active-playing' : ''}`}
             key={i}
-            onClick={() => onAuditionChord && onAuditionChord(c)}
-            title="Click to audition this chord"
+            onClick={() => onAuditionChord?.(c)}
+            aria-label={`Audition bar ${i + 1}: ${c.symbol}`}
           >
             <div className="deg">
               BAR {i + 1} {c.degree >= 0 ? `· deg ${c.degree + 1}` : ''}
@@ -43,7 +44,7 @@ export function ChordStrip({ chords, activeChordIndex, onAuditionChord }: ChordS
             <div className="chord-notes-preview">
               {c.midiNotes.map((m) => midiToNoteName(m)).join(' ')}
             </div>
-          </div>
+          </button>
         );
       })}
     </div>

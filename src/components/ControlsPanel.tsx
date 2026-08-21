@@ -3,6 +3,7 @@ import type { CascadeDirection, FeelKey, InstrumentKey, StyleKey } from '../type
 import { NOTE_NAMES } from '../theory/scales';
 import { FEEL_PROFILES } from '../theory/feels';
 import { CascadeKnob } from './CascadeKnob';
+import { Icon } from './Icon';
 
 export interface ControlsState {
   rootPc: number;
@@ -71,7 +72,7 @@ export function ControlsPanel({
             className="btn-launcher btn-launcher-presets"
             onClick={onOpen150Progressions}
           >
-            <span className="launcher-icon">📚</span>
+            <span className="launcher-icon" aria-hidden="true"><Icon name="library" /></span>
             <div className="launcher-content">
               <strong className="launcher-title">150 Performed Progressions</strong>
               <span className="launcher-sub">Standards, Bebop, Neo-Soul &amp; Coltrane</span>
@@ -83,7 +84,7 @@ export function ControlsPanel({
             className="btn-launcher btn-launcher-voicings"
             onClick={onOpenVoicingExplorer}
           >
-            <span className="launcher-icon">🎹</span>
+            <span className="launcher-icon" aria-hidden="true"><Icon name="keys" /></span>
             <div className="launcher-content">
               <strong className="launcher-title">1,500+ Jazz Voicings</strong>
               <span className="launcher-sub">Rootless, Drop-2, Quartal &amp; USTs</span>
@@ -179,13 +180,15 @@ export function ControlsPanel({
         {/* Tempo and Swing */}
         <div className="field">
           <div className="range-readout">
-            <label>Tempo (BPM)</label>
-            <span className="val">{state.bpm}</span>
+            <label htmlFor="tempoRange">Tempo</label>
+            <output className="val" htmlFor="tempoRange">{state.bpm} BPM</output>
           </div>
           <input
+            id="tempoRange"
             type="range"
             min={60}
             max={160}
+            aria-valuetext={`${state.bpm} beats per minute`}
             value={state.bpm}
             onChange={(e: ChangeEvent<HTMLInputElement>) => onChange('bpm', Number(e.target.value))}
           />
@@ -204,12 +207,16 @@ export function ControlsPanel({
             />
           </div>
           <div className="field">
-            <label htmlFor="swingRange">Jazz Swing</label>
+            <div className="range-readout range-readout-compact">
+              <label htmlFor="swingRange">Swing</label>
+              <output className="val" htmlFor="swingRange">{state.swing}%</output>
+            </div>
             <input
               id="swingRange"
               type="range"
               min={0}
               max={65}
+              aria-valuetext={`${state.swing} percent swing`}
               value={state.swing}
               onChange={(e: ChangeEvent<HTMLInputElement>) => onChange('swing', Number(e.target.value))}
             />
@@ -251,12 +258,14 @@ export function ControlsPanel({
       {/* 5. Generation & MIDI Export */}
       <div className="panel">
         <h2>Generate &amp; Export</h2>
-        <button className="btn btn-primary" onClick={onGenerateChords}>
-          ✨ Generate Jazz Chords
+        <button type="button" className="btn btn-primary" onClick={onGenerateChords}>
+          <Icon name="spark" aria-hidden="true" />
+          Generate progression
         </button>
         <div className="btn-row" style={{ marginTop: 10 }}>
-          <button className="btn btn-ghost" onClick={onExportMidi} disabled={exportDisabled}>
-            ⬇ Export Progression MIDI
+          <button type="button" className="btn btn-ghost" onClick={onExportMidi} disabled={exportDisabled}>
+            <Icon name="download" aria-hidden="true" />
+            Export MIDI
           </button>
         </div>
       </div>

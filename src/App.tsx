@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import * as Tone from 'tone';
 import { Hero } from './components/Hero';
 import { ControlsPanel, type ControlsState } from './components/ControlsPanel';
@@ -7,8 +7,12 @@ import { PianoRoll } from './components/PianoRoll';
 import { TransportBar } from './components/TransportBar';
 import { SessionLog } from './components/SessionLog';
 import { ModulationsPanel } from './components/ModulationsPanel';
-import { ProgressionsLibraryModal } from './components/ProgressionsLibraryModal';
-import { VoicingExplorerModal } from './components/VoicingExplorerModal';
+const ProgressionsLibraryModal = lazy(() =>
+  import('./components/ProgressionsLibraryModal').then((module) => ({ default: module.ProgressionsLibraryModal }))
+);
+const VoicingExplorerModal = lazy(() =>
+  import('./components/VoicingExplorerModal').then((module) => ({ default: module.VoicingExplorerModal }))
+);
 import { KeyboardVisualizer } from './components/KeyboardVisualizer';
 import { useSession } from './state/useSession';
 import { buildSynths, disposeSynths, whenSynthsReady, type SynthMap } from './audio/synths';
@@ -43,16 +47,26 @@ export default function App() {
 
   const synthsRef = useRef<SynthMap | null>(null);
   const partRef = useRef<Tone.Part | null>(null);
-  const [samplesReady, setSamplesReady] = useState(false);
+  const [audioStatus, setAudioStatus] = useState<'idle' | 'loading' | 'ready' | 'unavailable'>('idle');
 
-  useEffect(() => {
+  const ensureSynths = useCallback(async () => {
+    if (synthsRef.current) return synthsRef.current;
+
+    setAudioStatus('loading');
     const synths = buildSynths();
     synthsRef.current = synths;
-    whenSynthsReady(synths).then(() => setSamplesReady(true));
-    return () => {
-      disposeSynths(synths);
-      partRef.current?.dispose();
-    };
+    try {
+      await whenSynthsReady(synths);
+      setAudioStatus('ready');
+    } catch {
+      setAudioStatus('unavailable');
+    }
+    return synths;
+  }, []);
+
+  useEffect(() => () => {
+    if (synthsRef.current) disposeSynths(synthsRef.current);
+    partRef.current?.dispose();
   }, []);
 
   const paramsFromControls = useCallback(
@@ -99,7 +113,7 @@ export default function App() {
 
   const handlePlay = useCallback(async () => {
     await Tone.start();
-    if (synthsRef.current) await whenSynthsReady(synthsRef.current);
+    await ensureSynths();
     let chords = session.chords;
     if (chords.length === 0) {
       chords = session.generateChords(paramsFromControls());
@@ -107,7 +121,7 @@ export default function App() {
     reschedule(chords);
     Tone.Transport.start();
     setIsPlaying(true);
-  }, [session, paramsFromControls, reschedule]);
+  }, [session, paramsFromControls, reschedule, ensureSynths]);
 
   const handleStop = useCallback(() => {
     Tone.Transport.stop();
@@ -131,41 +145,41 @@ export default function App() {
   const handleAuditionSingleChord = useCallback(
     async (chord: Chord) => {
       await Tone.start();
-      if (!synthsRef.current) return;
+      const synths = await ensureSynths();
       playAuditionChord(
-        synthsRef.current,
+        synths,
         controls.chordInstrument,
         chord.midiNotes,
         controls.cascadeMs,
         controls.cascadeDirection
       );
     },
-    [controls.chordInstrument, controls.cascadeMs, controls.cascadeDirection]
+    [controls.chordInstrument, controls.cascadeMs, controls.cascadeDirection, ensureSynths]
   );
 
   const handleAuditionMidiNotes = useCallback(
     async (midiNotes: number[]) => {
       await Tone.start();
-      if (!synthsRef.current) return;
+      const synths = await ensureSynths();
       playAuditionChord(
-        synthsRef.current,
+        synths,
         controls.chordInstrument,
         midiNotes,
         controls.cascadeMs,
         controls.cascadeDirection
       );
     },
-    [controls.chordInstrument, controls.cascadeMs, controls.cascadeDirection]
+    [controls.chordInstrument, controls.cascadeMs, controls.cascadeDirection, ensureSynths]
   );
 
   // Preview a sequence of chords
   const handlePreviewSequence = useCallback(
     async (previewChords: Chord[]) => {
       await Tone.start();
-      if (!synthsRef.current) return;
+      const synths = await ensureSynths();
       partRef.current?.dispose();
       partRef.current = scheduleTransport({
-        synths: synthsRef.current,
+        synths,
         chords: previewChords,
         bpm: controls.bpm,
         swing: controls.swing / 100,
@@ -179,7 +193,7 @@ export default function App() {
       Tone.Transport.start();
       setIsPlaying(true);
     },
-    [controls]
+    [controls, ensureSynths]
   );
 
   // Load from 150 Progressions modal
@@ -243,9 +257,9 @@ export default function App() {
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                {!samplesReady && (
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Loading piano sample layers…</span>
-                )}
+                {audioStatus === 'idle' && <span className="audio-status">Audio loads on first audition.</span>}
+                {audioStatus === 'loading' && <span className="audio-status">Loading audio instruments…</span>}
+                {audioStatus === 'unavailable' && <span className="audio-status audio-status-warning">Some audio samples are unavailable.</span>}
                 <TransportBar isPlaying={isPlaying} onPlay={handlePlay} onStop={handleStop} />
               </div>
             </div>
@@ -296,21 +310,24 @@ export default function App() {
         </div>
       </div>
 
-      {/* 150 Performed Progressions Modal */}
-      <ProgressionsLibraryModal
-        isOpen={is150ModalOpen}
-        onClose={() => setIs150ModalOpen(false)}
-        onLoadProgression={handleLoadProgression}
-        onPreviewChords={handlePreviewSequence}
-      />
-
-      {/* 1,500+ Jazz Voicings Explorer Modal */}
-      <VoicingExplorerModal
-        isOpen={isVoicingExplorerOpen}
-        onClose={() => setIsVoicingExplorerOpen(false)}
-        onAuditionNotes={handleAuditionMidiNotes}
-        onAddChordToTrack={(chord) => session.addSingleChord(chord)}
-      />
+      <Suspense fallback={null}>
+        {is150ModalOpen ? (
+          <ProgressionsLibraryModal
+            isOpen={is150ModalOpen}
+            onClose={() => setIs150ModalOpen(false)}
+            onLoadProgression={handleLoadProgression}
+            onPreviewChords={handlePreviewSequence}
+          />
+        ) : null}
+        {isVoicingExplorerOpen ? (
+          <VoicingExplorerModal
+            isOpen={isVoicingExplorerOpen}
+            onClose={() => setIsVoicingExplorerOpen(false)}
+            onAuditionNotes={handleAuditionMidiNotes}
+            onAddChordToTrack={(chord) => session.addSingleChord(chord)}
+          />
+        ) : null}
+      </Suspense>
 
       <footer>
         <strong>Umpholo Jazz Harmony Workstation</strong> — Featuring 1,500+ unique jazz chord voicings, 150 performed chord progressions, Steinway &amp; Rhodes sample layers with Web Audio API / Tone.js, cascade strum micro-timing, and Standard MIDI File (Format 1) export. 100% client-side.

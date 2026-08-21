@@ -1,0 +1,16 @@
+
+> umpholo-tpm@1.0.0 build
+> tsc -b && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 1023 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                     0.59 kB │ gzip:   0.37 kB
+dist/assets/index-DxtN-SrI.css                     42.52 kB │ gzip:   8.36 kB
+dist/assets/useAccessibleDialog-D60liu17.js         1.20 kB │ gzip:   0.59 kB
+dist/assets/VoicingExplorerModal-CEqfpYyL.js       11.74 kB │ gzip:   3.51 kB
+dist/assets/ProgressionsLibraryModal-NGeGgRgE.js   86.08 kB │ gzip:  15.56 kB
+dist/assets/index-DuANiq-o.js                     481.09 kB │ gzip: 139.14 kB
+✓ built in 1.54s
